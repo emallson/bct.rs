@@ -61,6 +61,8 @@ quickcheck = "0.4.1"
 
 [profile]
 
+[profile.test]
+opt-level = 2
 [profile.dev]
 opt-level = 2
 

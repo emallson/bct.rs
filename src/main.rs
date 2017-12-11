@@ -383,3 +383,63 @@ fn main() {
     info!(log, "solution"; "seeds" => json_string(&seeds.into_iter().map(|node| node.index()).collect::<Vec<_>>()).unwrap());
 
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    /// This test checks the consistency of the solution across changes to the code. The set
+    /// `BASIS` is 15 nodes that show up in effectively all solutions with these settings. The set
+    /// was found by taking a solution and iteratively running the test and removing seed nodes
+    /// until it passed 20 times in a row with no modifications.
+    #[test]
+    fn grqc_unweighted_consistency() {
+        const BASIS: [usize; 15] = [296, 1038, 109, 578, 54, 187, 1734, 21, 12, 280, 366, 1089, 316, 1244, 1033];
+        // removed: 102, 347, 451, 1285, 364
+        let g = Graph::oriented_from_edges(capngraph::load_edges("ca-GrQc.bin").unwrap(), petgraph::Incoming);
+        let n = g.node_count() as f64;
+        let seeds = bct(g, None, None, Model::IC, 20.0, 0.1, 1.0 / n, slog::Logger::root(slog::Discard, o!()));
+        let seeds = seeds.into_iter().map(|u| u.index()).collect::<Vec<_>>();
+        println!("{:?}", seeds);
+        for el in &BASIS {
+            assert!(seeds.contains(el), "does not contain: {}", el);
+        }
+    }
+
+    #[test]
+    fn grqc_weighted_consistency() {
+        const BASIS: [usize; 56] = [1131, 2814, 1445, 5063, 1001, 4572, 1126, 4649, 1004, 2636, 3311, 2223, 3513, 5001, 4294, 4699, 1079, 2477, 3262, 4602, 1567, 5239, 948, 4927, 2291, 3097, 2704, 2414, 2963, 722, 4222, 844, 3923, 4109, 4274, 1728, 5169, 1128, 4175, 1834, 4718, 3613, 1551, 3626, 3328, 2547, 3186, 830, 3731, 2007, 2785, 3532, 3486, 3022, 2830, 0];
+        // removed: 1399,3019, 854, 4104, 3466, 4158, 2928, 1997, 3684, 4216, 3124, 1580, 689, 2864, 2637, 1345, 2555, 1464, 2188, 4716, 
+        let g = Graph::oriented_from_edges(capngraph::load_edges("ca-GrQc.bin").unwrap(), petgraph::Incoming);
+        let costs: Option<CostVec> = Some("grqc_costs.bin")
+            .as_ref()
+            .map(|path| bin_read_from(&mut File::open(path).unwrap(), Infinite).unwrap());
+        let bens: Option<BenVec> = Some("grqc_bens.bin")
+            .as_ref()
+            .map(|path| bin_read_from(&mut File::open(path).unwrap(), Infinite).unwrap());
+        let n = g.node_count() as f64;
+        let seeds = bct(g, costs, bens, Model::IC, 20.0, 0.1, 1.0 / n, slog::Logger::root(slog::Discard, o!()));
+        let seeds = seeds.into_iter().map(|u| u.index()).collect::<Vec<_>>();
+        println!("{:?}", seeds);
+        for el in BASIS.iter() {
+            assert!(seeds.contains(el), "does not contain: {}", el);
+        }
+    }
+
+    #[test]
+    fn grqc_weighted_budget_constraint() {
+        const BUDGET: f64 = 20.0;
+        let g = Graph::oriented_from_edges(capngraph::load_edges("ca-GrQc.bin").unwrap(), petgraph::Incoming);
+        let costs: Option<CostVec> = Some("grqc_costs.bin")
+            .as_ref()
+            .map(|path| bin_read_from(&mut File::open(path).unwrap(), Infinite).unwrap());
+        let bens: Option<BenVec> = Some("grqc_bens.bin")
+            .as_ref()
+            .map(|path| bin_read_from(&mut File::open(path).unwrap(), Infinite).unwrap());
+        let n = g.node_count() as f64;
+        let seeds = bct(g, costs.clone(), bens, Model::IC, BUDGET, 0.1, 1.0 / n, slog::Logger::root(slog::Discard, o!()));
+        let costs = costs.unwrap();
+        let total_cost = seeds.iter().map(|u| costs[u.index()]).sum::<f64>();
+        assert!(total_cost <= BUDGET, "cost exceeded budget: {} > {}", total_cost, BUDGET);
+    }
+}
