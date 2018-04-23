@@ -22,12 +22,10 @@ slog-term = "1.5.0"
 statrs = "0.8.0"
 
 [dependencies.avarice]
-branch = "setlike"
 git = "https://github.com/emallson/avarice.rs.git"
 optional = false
 
 [dependencies.avarice-derive]
-branch = "setlike"
 git = "https://github.com/emallson/avarice.rs.git"
 optional = false
 

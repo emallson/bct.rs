@@ -274,20 +274,22 @@ fn bct(g: Graph<(), f32>,
 
     let k_max = determine_kmax(&costs, k) as f64;
 
-    let c = 2.0 * (E - 2.0);
-    let upsilon_base = 8.0 * c * (1.0 - 1.0 / (2.0 * E)).powi(2) * eps.powi(-2);
-    let upsilon = upsilon_base *
-                  if costs.is_none() {
-        (1.0 / delta).ln() + logbinom(g.node_count(), k as usize) + 2.0 / n
+    // let silly_term = n.ln().ln() + k.ln() + 2.0 * n.ln();
+    let silly_term = logbinom(n as usize, k as usize);
+    let alpha = (delta.powi(-1).ln() + 2f64.ln()).sqrt();
+    let beta = ((1.0 - 1.0 / E) * (silly_term + delta.powi(-1).ln() + 2f64.ln())).sqrt();
+    let eps2 = (eps * beta) / ((1.0 - 1.0 / E) * alpha + beta);
+    let theta = ((2.0 - 2.0 / E) * (silly_term + (3.0 / delta).ln() + 2f64.ln())) / eps2.powi(2);
+    let lambda = if costs.is_none() {
+        (1.0 + eps2) * (2.0 + 2.0 * eps2 / 3.0) / (2.0 - 2.0 / E) * theta
     } else {
-        (1.0 / delta).ln() + k_max * n.ln() * 2.0 / n
+        let eps2p = (eps * ((1.0 - 1.0 / E) * k_max * (n * 2.0 / delta).ln()).sqrt()) / ((1.0 - 1.0 / E) * (2.0 / delta).ln().sqrt() + ((1.0 - 1.0 / E) * k_max * (n * 2.0 / delta).ln()).sqrt());
+        (1.0 + eps2p) * (2.0 + 2.0 * eps2p / 3.0) * (6f64.ln() + silly_term - delta.ln()) * eps2p.powi(-2) 
     };
-
-    let lambda = (1.0 + (eps * E) / (2.0 * E - 1.0)) * upsilon;
     #[allow(non_snake_case)]
     let mut N_t = lambda.ceil() as usize;
 
-    info!(log, "beginning loop"; "Υ" => upsilon, "N_t" => N_t, "Λ" => lambda);
+    info!(log, "beginning loop"; "N_t" => N_t, "Λ" => lambda);
 
     let dist = benefits.as_ref().map(|w| Categorical::new(w).unwrap());
     let mut samples = vec![];
