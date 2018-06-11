@@ -8,7 +8,7 @@ and solving is done with
 [avarice](https://github.com/emallson/avarice.rs/tree/setlike).
 
 *This is not the canonical/reference implementation!* I re-implemented this as
-a learning exercise.
+a learning exercise, and it is likely **significantly slower than the authors' code.** Please do not use this in comparisons of running time performance to the BCT algorithm.
 
 ## Input Format
 
